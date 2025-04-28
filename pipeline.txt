@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    stages {
+        stage('Stop Java Processes') {
+            steps {
+                // Run playbook to stop Java processes on WebSphere servers
+                sh '''
+                  ansible-playbook -i inventory.yml stop_java_processes.yml
+                '''
+            }
+        }
+
+        stage('Apply WebSphere Fixpack') {
+            steps {
+                // Run playbook to apply WebSphere Fixpack
+                sh '''
+                  ansible-playbook -i inventory.yml was_fixpack_deploy.yml \
+                    -e "repo_path=/opt/wasfixes/ND_9.0.5.23_repo" \
+                    -e "fixpack_package=com.ibm.websphere.ND.v90_9.0.50023.20240412_0820" \
+                    -e "was_install_dir=/opt/IBM/WebSphere/AppServer"
+                '''
+            }
+        }
+
+        stage('Start WebSphere') {
+            steps {
+                // Run playbook to start WAS services
+                sh '''
+                  ansible-playbook -i inventory.yml start_was.yml
+                '''
+            }
+        }
+    }
+}
+

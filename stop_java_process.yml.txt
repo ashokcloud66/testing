@@ -1,0 +1,31 @@
+---
+- name: Stop WebSphere Java Processes
+  hosts: websphere_servers
+  tasks:
+    - name: Stop WebSphere Server JVMs using stopWAS.sh
+      script: /opt/IBM/WebSphere/scripts/stopWAS.sh
+      become: yes
+      become_user: root  # or the appropriate user if needed
+
+    - name: Check if any Java processes are still running
+      shell: ps aux | grep java | grep -v grep
+      register: java_processes
+      ignore_errors: yes
+
+    - name: Kill remaining Java processes if any
+      shell: kill -9 {{ item.pid }}
+      with_items: "{{ java_processes.stdout_lines }}"
+      when: java_processes.stdout_lines | length > 0
+      become: yes
+      become_user: root  # Ensure the command is run as the correct user
+
+    - name: Confirm no Java processes remain
+      shell: ps aux | grep java | grep -v grep
+      register: remaining_java_processes
+      failed_when: remaining_java_processes.stdout_lines | length > 0
+      ignore_errors: yes
+
+    - name: Output remaining Java processes
+      debug:
+        var: remaining_java_processes.stdout_lines
+      when: remaining_java_processes.stdout_lines | length > 0
