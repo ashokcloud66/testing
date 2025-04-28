@@ -1,0 +1,23 @@
+---
+- name: Apply WebSphere Fixpack
+  hosts: websphere_servers
+  become: yes
+  tasks:
+    - name: Verify if the fixpack package exists
+      stat:
+        path: "{{ repo_path }}/{{ fixpack_package }}"
+      register: fixpack_package_stat
+
+    - name: Fail if fixpack package does not exist
+      fail:
+        msg: "Fixpack package {{ fixpack_package }} does not exist at {{ repo_path }}"
+      when: not fixpack_package_stat.stat.exists
+
+    - name: Apply the fixpack package
+      command: >
+        /opt/IBM/InstallationManager/eclipse/tools/imcl install {{ fixpack_package }} 
+        -repositories {{ repo_path }} 
+        -installationDirectory {{ was_install_dir }} 
+        -log /tmp/fixpack_install.log 
+        -acceptLicense
+      when: fixpack_package_stat.stat.exists
